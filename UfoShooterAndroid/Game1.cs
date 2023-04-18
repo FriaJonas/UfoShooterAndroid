@@ -1,5 +1,6 @@
 ﻿
 using Android.Util;
+using Android.Views;
 using Java.Util.Logging;
 using Microsoft.Devices.Sensors;
 using Microsoft.Xna.Framework;
@@ -12,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Xml;
 using UfoShooterAndroid.Content;
@@ -27,6 +29,8 @@ namespace UfoShooterAndroid
     }
     public class Game1 : Game
     {
+        public static GameWindow gw;
+        StringBuilder playerName = new StringBuilder();
         private string playerdata = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "HighScore.json");
         private List<HighScore> HighScores { get; set; } = new List<HighScore>();
         private bool GotHighScore { get; set; } = false;
@@ -78,7 +82,8 @@ namespace UfoShooterAndroid
         GameState gameState { get; set; } = GameState.Start;
         public Game1()
         {
-            Life= 3;
+         
+            Life = 3;
             Points = 0;
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -341,6 +346,8 @@ namespace UfoShooterAndroid
                 if (GotHighScore)
                 {
                     spriteBatch.DrawString(Font, "GRATULATION TO HIGHSCORE", new Vector2(10, 250), Color.White);
+                    spriteBatch.DrawString(Font, "Entyer your Name", new Vector2(10, 350), Color.White);
+
                 }
                 startButton.Draw(spriteBatch);
                 spriteBatch.DrawString(Font, "Game Over", new Vector2(200, 520), Color.White);
