@@ -11,7 +11,7 @@ namespace UfoShooterAndroid.Lib
     public class Shot : Sprite
     {
 
-        public Shot(Texture2D texture ,Game game) : base(game)
+        public Shot(Texture2D texture ,Game1 game) : base(game)
         {
             Speed = -10;
             Texture= texture;

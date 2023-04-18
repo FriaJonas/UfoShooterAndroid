@@ -11,7 +11,7 @@ namespace UfoShooterAndroid.Lib
 {
     public abstract class Sprite
     {
-        protected Game game;
+        protected Game1 game;
         protected Texture2D Texture { get; set; }
         public SoundEffect Sound { get; set; }
         public Vector2 Position;
@@ -20,7 +20,7 @@ namespace UfoShooterAndroid.Lib
         public int Speed { get; set; } = 5;
         public bool IsActive { get; set; } = true;
 
-        public Sprite(Game _game) { game = _game; }
+        public Sprite(Game1 _game) { game = _game; }
 
         public virtual void Draw(SpriteBatch spriteBatch)
         {

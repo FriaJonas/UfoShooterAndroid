@@ -11,7 +11,7 @@ namespace UfoShooterAndroid.Lib
     internal class Explosion : Sprite
     {
         private int Timer = 30;
-        public Explosion(Texture2D texture,Game game) : base(game)
+        public Explosion(Texture2D texture,Game1 game) : base(game)
         {
             Texture=texture;
         }

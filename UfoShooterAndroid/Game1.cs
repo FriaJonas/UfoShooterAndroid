@@ -1,13 +1,20 @@
 ﻿
+using Android.Util;
+using Java.Util.Logging;
 using Microsoft.Devices.Sensors;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Xml;
+using UfoShooterAndroid.Content;
 using UfoShooterAndroid.Lib;
 
 namespace UfoShooterAndroid
@@ -20,6 +27,10 @@ namespace UfoShooterAndroid
     }
     public class Game1 : Game
     {
+        private string playerdata = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "HighScore.json");
+        private List<HighScore> HighScores { get; set; } = new List<HighScore>();
+        private bool GotHighScore { get; set; } = false;
+
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private Accelerometer acc;
@@ -45,6 +56,8 @@ namespace UfoShooterAndroid
         Texture2D monster2Texture;
         Texture2D explosionTexture;
         Texture2D ufoTexture;
+        Texture2D buttonStartTexture;
+        Texture2D lifeBarTexture;
 
         SpriteFont Font;
 
@@ -52,6 +65,7 @@ namespace UfoShooterAndroid
         //List<Shot> shots { get; set; } = new List<Shot>();
 
         Ship ship;
+        StartButton startButton;
 
         SoundEffect laserSound;
 
@@ -60,7 +74,8 @@ namespace UfoShooterAndroid
 
         float sensorValueX;
         float sensorValueY;
-        GameState gameState;
+        public Rectangle lifeBar = new Rectangle(50,100,1000,50);
+        GameState gameState { get; set; } = GameState.Start;
         public Game1()
         {
             Life= 3;
@@ -70,13 +85,15 @@ namespace UfoShooterAndroid
             IsMouseVisible = true;
             acc = new Accelerometer();
             acc.CurrentValueChanged += Acc_CurrentValueChanged;
-            gameState = GameState.InGame;
+            HighScores = LoadHighScore();
+            gameState = GameState.Start;
+            
         }
 
         private void Acc_CurrentValueChanged(object sender, SensorReadingEventArgs<AccelerometerReading> e)
         {
-            sensorValueX = (float)e.SensorReading.Acceleration.X;
-            sensorValueY = (float)e.SensorReading.Acceleration.Y;
+            sensorValueX = e.SensorReading.Acceleration.X;
+            sensorValueY = e.SensorReading.Acceleration.Y-0.05f;
             ship.Velocity.X = -sensorValueX * 100;
             ship.Velocity.Y = sensorValueY * 100;
         }
@@ -104,6 +121,8 @@ namespace UfoShooterAndroid
             monster1Texture = Content.Load<Texture2D>("monster1");
             monster2Texture = Content.Load<Texture2D>("monster2");
             ufoTexture = Content.Load<Texture2D>("ufo");
+            buttonStartTexture = Content.Load<Texture2D>("start");
+            lifeBarTexture = Content.Load<Texture2D>("lifebar");
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
             Background = Content.Load<Texture2D>("spacebg");
@@ -111,6 +130,7 @@ namespace UfoShooterAndroid
             ship = new Ship(shipTexture, this);
             sprites.Add(ship);
 
+            startButton = new StartButton(buttonStartTexture, this, new Point(400,1600));
 
             // TODO: use this.Content to load your game content here
         }
@@ -120,19 +140,29 @@ namespace UfoShooterAndroid
 
             
             TouchCollection tc = TouchPanel.GetState();
-
+            KeyboardState ks = Keyboard.GetState();
             if (gameState == GameState.Start || gameState == GameState.GameOver)
             {
                 foreach (TouchLocation tl in tc)
                 {
-                    if (TouchLocationState.Pressed == tl.State)
+                    if(startButton.Position.Contains(tl.Position))
                     {
                         gameState = GameState.InGame;
+                        GotHighScore = false;
                         Life = 3;
                         Points = 0;
+                        lifeBar.Width = 1000;
                         sprites.RemoveAll(e => e.GetType() != typeof(Ship));
-
                     }
+                    //if (TouchLocationState.Pressed == tl.State )
+                    //{
+                    //    gameState = GameState.InGame;
+                    //    GotHighScore = false;
+                    //    Life = 3;
+                    //    Points = 0;
+                    //    sprites.RemoveAll(e => e.GetType() != typeof(Ship));
+
+                    //}
                 }
             }
             if (gameState == GameState.InGame)
@@ -181,7 +211,7 @@ namespace UfoShooterAndroid
                 //Känner av tapp på skärmen för att skjuta!
                 foreach (TouchLocation tl in tc)
                 {
-                    if (TouchLocationState.Pressed == tl.State && Shot_time <= 0)
+                    if (TouchLocationState.Pressed == tl.State && Shot_time <= 0 )
                     {
                         SoundPlayer.Play(laserSound);
 
@@ -193,8 +223,26 @@ namespace UfoShooterAndroid
                         Shot_time = Shot_delay;
                     }
                 }
-                // TODO: Add your update logic here
+                // För test på dator
+                if (ks.IsKeyDown(Keys.Right))
+                {
+                    ship.Velocity.X += 5;
+                }
+                else if (ks.IsKeyDown(Keys.Left))
+                {
+                    ship.Velocity.X -=  5;
+                }
+                if (ks.IsKeyDown(Keys.Space) && Shot_time <= 0)
+                {
+                    SoundPlayer.Play(laserSound);
 
+                    Shot_time = Shot_delay;
+                    sprites.Add(new Shot(shotTexture, this)
+                    {
+                        Position = new Vector2(ship.Position.X + 70, ship.Position.Y)
+                    });
+                    Shot_time = Shot_delay;
+                }
                 //Kolla kollissioner - behöver sätta ToList() efter för att vi ändrar den befintliga listan     
                 foreach (Enemy e in sprites.OfType<Enemy>().ToList())
                 {
@@ -215,7 +263,7 @@ namespace UfoShooterAndroid
                             SoundPlayer.Play(explosionSound);
                             s.IsActive = false;
                             e.IsActive = false;
-                            Points += 1;
+                            Points += 10;
                             sprites.Add(new Explosion(explosionTexture, this)
                             {
                                 Position = e.Position
@@ -235,7 +283,7 @@ namespace UfoShooterAndroid
                             {
                                 Position = u.Position
                             });
-                            Points += 100; //Poäng!!!!
+                            Points += 1000; //Poäng!!!!
                            
                             u.IsActive = false;
                             s.IsActive = false;
@@ -246,11 +294,27 @@ namespace UfoShooterAndroid
                 }
                 sprites.ForEach(e => e.Update(gameTime));
                 sprites.RemoveAll(e => e.IsActive == false);
+                if (lifeBar.Width <= 0)
+                {
+                    Life -= 1;
+                    if (Life > 0)
+                    {
+                        lifeBar.Width = 1000;
+                    }
+                }
+                if (Life == 0 )
+                {
+                    gameState = GameState.GameOver;
+                    HighScore newHs = new HighScore()
+                    {
+                        Score = Points,
+                        Nickname = "test",
+                        TimePlayed = DateTime.Now
+                    };
+                    SaveScore(newHs);
+                }
             }
-            if (Life == 0)
-            {
-                gameState = GameState.GameOver;
-            }
+            
             base.Update(gameTime);
         }
 
@@ -268,14 +332,99 @@ namespace UfoShooterAndroid
             }
             else if (gameState == GameState.Start)
             {
-                spriteBatch.DrawString(Font, "Tap to start", new Vector2(380, 820), Color.White);
+                startButton.Draw(spriteBatch);
+                //spriteBatch.DrawString(Font, "Tap to start", new Vector2(500, 520), Color.White);
+                DrawHigScore();
             }
             else if (gameState == GameState.GameOver)
             {
-                spriteBatch.DrawString(Font, "Game Over - Tap to retry", new Vector2(150, 820), Color.White);
+                if (GotHighScore)
+                {
+                    spriteBatch.DrawString(Font, "GRATULATION TO HIGHSCORE", new Vector2(10, 250), Color.White);
+                }
+                startButton.Draw(spriteBatch);
+                spriteBatch.DrawString(Font, "Game Over", new Vector2(200, 520), Color.White);
+                DrawHigScore();
             }
+            spriteBatch.Draw(lifeBarTexture,lifeBar, Color.White);
             spriteBatch.End();
             base.Draw(gameTime);
+
+        }
+        private void SaveScore(HighScore newScore)
+        {
+            //Vi lägger till scoren
+              int minScore = 0;
+            int maxScore = 0;
+            if (HighScores.Count > 0)
+            {
+                minScore = HighScores.Min(x => x.Score);
+                maxScore = HighScores.Max(x => x.Score);
+            }
+            if (newScore.Score > maxScore)
+            {   
+                GotHighScore = true;
+            }
+            //om scoren är högre än lägsta i listan eller att det inte finns 5st.
+            if (newScore.Score > minScore | HighScores.Count < 5)
+            {
+                HighScores.Add(newScore);
+                HighScores.Sort(delegate (HighScore x, HighScore y)
+                {
+                    return y.Score.CompareTo(x.Score);
+                });
+                //Plocka ut de fem högsta
+                if (HighScores.Count > 5)
+                {
+                    HighScores = HighScores.Take(5).ToList();
+                }
+                
+
+                if (File.Exists(playerdata))
+                {
+                    File.Delete(playerdata);
+                }
+
+                using (FileStream fs = File.Open(playerdata, FileMode.CreateNew))
+                using (StreamWriter sw = new StreamWriter(fs))
+                using (Newtonsoft.Json.JsonWriter jw = new JsonTextWriter(sw))
+                {
+                    jw.Formatting = Newtonsoft.Json.Formatting.Indented;
+
+                    Newtonsoft.Json.JsonSerializer serializer = new Newtonsoft.Json.JsonSerializer();
+                    serializer.Serialize(jw, HighScores);
+                }
+            }
+        }
+        private List<HighScore> LoadHighScore()
+        {
+            try
+            {
+                var content = File.ReadAllText(playerdata);
+                var lista = System.Text.Json.JsonSerializer.Deserialize<List<HighScore>>(content);
+                return lista;
+            }
+            catch
+            {
+                return new List<HighScore>();
+            }
+        }
+        private void DrawHigScore()
+        {
+            //Skriva ut Hiscore TOP 10
+            if (HighScores.Count > 0)
+            {
+                float y = 800;
+                spriteBatch.DrawString(Font, "High scores Top 5: ", new Vector2(250, y), Color.White);
+
+                foreach (var hs in HighScores)
+                {
+                    y += 100;
+                    spriteBatch.DrawString(Font, hs.TimePlayed.ToShortDateString() + " " + hs.Nickname + " " + hs.Score, new Vector2(250, y), Color.White);
+
+                }
+
+            }
 
         }
     }

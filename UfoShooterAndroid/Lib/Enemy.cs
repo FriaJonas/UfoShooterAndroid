@@ -15,7 +15,7 @@ namespace UfoShooterAndroid.Lib
 
         Vector2 center;
         
-        public Enemy(Texture2D texture,Game game) : base(game)
+        public Enemy(Texture2D texture,Game1 game) : base(game)
         {
             Texture=texture;
             Random rnd = new Random();
@@ -32,7 +32,11 @@ namespace UfoShooterAndroid.Lib
            
             Position.Y += Speed;
             //Om bomberna faller förbi
-            if (Position.Y > game.GraphicsDevice.Viewport.Height + 20) this.IsActive = false;
+            if (Position.Y > game.GraphicsDevice.Viewport.Height + 20)
+            {
+                game.lifeBar.Width -= 50;
+                this.IsActive = false;
+            }
         }
     }
 }

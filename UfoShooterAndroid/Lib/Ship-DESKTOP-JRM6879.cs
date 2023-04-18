@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+﻿          using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace UfoShooterAndroid.Lib
     internal class Ship:Sprite
     {
 
-        public Ship(Texture2D graphics, Game1 _game) : base(_game)
+        public Ship(Texture2D graphics, Game _game) : base(_game)
         {
             game = _game;
             Texture = graphics;
@@ -23,8 +23,18 @@ namespace UfoShooterAndroid.Lib
 
         public override void Update(GameTime gameTime)
         {
-            //För debug dator
-             
+            if (!string.IsNullOrEmpty(txt))
+            {
+
+            }
+            // läs i tecknet
+
+            // Kolla om tecknt finns i arrayen
+
+
+            //denna funktionen Måste implementeras!!
+
+            //lite random för att få bollarna att få olika fart och riktning
             Position += Velocity;
             if(Position.X<0) Position.X = 0;
             if(Position.X>game.Window.ClientBounds.Width-Texture.Width)

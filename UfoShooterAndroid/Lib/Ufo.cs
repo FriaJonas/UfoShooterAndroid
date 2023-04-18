@@ -11,7 +11,7 @@ namespace UfoShooterAndroid.Lib
 {
     internal class Ufo:Sprite
     {
-        public Ufo(Texture2D texture, Game _game) : base(_game)
+        public Ufo(Texture2D texture, Game1 _game) : base(_game)
         {
             Texture = texture;
             Random rnd = new Random();
